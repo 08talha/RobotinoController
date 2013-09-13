@@ -1,23 +1,30 @@
 package bionic.engineering.robotinocontroller;
 
+import android.app.Activity;
+import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.app.Activity;
-import android.content.Context;
 import android.view.Menu;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends Activity{
+	
+	private GyroVisualizer mGyroView;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		//hello!
 		hookupSensorListener();
+		
+		mGyroView = new GyroVisualizer(this);
+		//setContentView(mGyroView);
+		LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
+		layout.addView(mGyroView);
 	}
 
 	@Override
@@ -50,6 +57,8 @@ public class MainActivity extends Activity{
 	{
 		  TextView output = (TextView)findViewById(R.id.output);
 		  output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
+		  
+		  mGyroView.setGyroRotation(x, y, z);
 		  
 	}
 }//Andy
