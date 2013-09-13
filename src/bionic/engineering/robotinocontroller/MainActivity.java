@@ -46,10 +46,10 @@ public class MainActivity extends Activity{
 		public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 	};
 
-	private void updateOrientation(float heading, float pitch, float roll) 
+	private void updateOrientation(float x, float y, float z) 
 	{
 		  TextView output = (TextView)findViewById(R.id.output);
-		  output.setText("heading: " + heading + "\npitch: " + pitch + "\nroll: " + roll);
+		  output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
 		  
 	}
 }//Andy
