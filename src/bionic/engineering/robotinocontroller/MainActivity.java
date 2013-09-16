@@ -24,22 +24,26 @@ public class MainActivity extends Activity{
 	private GyroVisualizer mGyroView;
 
 	private Socket socket;
-	private static final int SERVERPORT = 5000;
-	private static final String SERVER_IP = "10.0.2.2";
+	private static final int SERVERPORT = 11000;
+	private static final String SERVER_IP = "158.37.170.75";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		new Thread(new ClientThread()).start();
 		hookupSensorListener();
 
 		mGyroView = new GyroVisualizer(this);
 		LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
 		layout.addView(mGyroView);
-		new Thread(new ClientThread()).start();
-		
-		connect();
 
+	}
+	
+	@Override
+	protected void onResume(){
+		super.onResume();
+		connect();
 	}
 
 	@Override
@@ -107,14 +111,14 @@ public class MainActivity extends Activity{
 		TextView output = (TextView) findViewById(R.id.output);
 		output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
 
-	}
+	} 
 
 	public void connect(){
 		try{
 			PrintWriter out = new PrintWriter(new BufferedWriter(
 					new OutputStreamWriter(socket.getOutputStream())),
 					true);
-			out.println("HELLO MAG!");
+			out.println("HELLO MAG\n");
 		}catch(UnknownHostException e){
 			e.printStackTrace();
 		}catch(IOException e){
@@ -130,7 +134,7 @@ public class MainActivity extends Activity{
 			try{
 				InetAddress serverAddr = InetAddress.getByName(SERVER_IP);
 				socket = new Socket(serverAddr, SERVERPORT);
-
+				
 			}catch(UnknownHostException e1){
 				e1.printStackTrace();
 			}catch(IOException e1){
