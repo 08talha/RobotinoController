@@ -84,10 +84,7 @@ public class MainActivity extends Activity{
             mRotationZ += angularVelocity * timeDiff;
 
             mGyroView.setGyroRotation(mRotationX, mRotationY, mRotationZ);
-            if(300 % i == 0){
-            	updateOrientation(event.values[0], event.values[1], event.values[2]);
-            	i++;
-            }
+            updateOrientation(mRotationX, mRotationY, mRotationZ);
         }
     };
 
