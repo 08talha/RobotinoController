@@ -25,7 +25,7 @@ public class MainActivity extends Activity{
 
 	private Socket socket;
 	private static final int SERVERPORT = 11000;
-	private static final String SERVER_IP = "158.37.170.75";
+	private static final String SERVER_IP = "158.37.169.217";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState){
@@ -37,13 +37,6 @@ public class MainActivity extends Activity{
 		mGyroView = new GyroVisualizer(this);
 		LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
 		layout.addView(mGyroView);
-
-	}
-	
-	@Override
-	protected void onResume(){
-		super.onResume();
-		connect();
 	}
 
 	@Override
@@ -110,15 +103,16 @@ public class MainActivity extends Activity{
 	{
 		TextView output = (TextView) findViewById(R.id.output);
 		output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
+		connect(x,y,z);
 
 	} 
 
-	public void connect(){
+	public void connect(float x, float y, float z){
 		try{
 			PrintWriter out = new PrintWriter(new BufferedWriter(
 					new OutputStreamWriter(socket.getOutputStream())),
 					true);
-			out.println("HELLO MAG\n");
+			out.println("x: " + x + "\ny: " + y + "\nz: " + z + "\n");
 		}catch(UnknownHostException e){
 			e.printStackTrace();
 		}catch(IOException e){
