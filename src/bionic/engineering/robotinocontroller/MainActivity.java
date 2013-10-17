@@ -22,10 +22,11 @@ import android.widget.TextView;
 public class MainActivity extends Activity{
 
 	private GyroVisualizer mGyroView;
+	int count = 0;	//Teller opp antall kall på connect for å ikke sende for mange oppdateringer
 
 	private Socket socket;
-	private static final int SERVERPORT = 11000;
-	private static final String SERVER_IP = "158.37.169.217";
+	private static final int SERVERPORT = 11400;
+	private static final String SERVER_IP = "10.10.1.59";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState){
@@ -65,8 +66,8 @@ public class MainActivity extends Activity{
 		@Override
 		public void onSensorChanged(SensorEvent event){
 			float[] values = event.values;
-			float x = values[0];
-			float y = values[1];
+			float y = -values[0];
+			float x = values[1];
 			float z = values[2];
 
 			float angularVelocity = z * 0.96f; // Minor adjustment to avoid drift on Nexus S
@@ -98,13 +99,20 @@ public class MainActivity extends Activity{
 			updateOrientation(mRotationX, mRotationY, mRotationZ);
 		}
 	};
-
+	
 	private void updateOrientation(float x, float y, float z)
 	{
 		TextView output = (TextView) findViewById(R.id.output);
+		
+		
+		/* Testings.. Sender ikke alle kall på connect()
+		if(count % 10 == 0){
+			connect(x,y,z);
+			output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
+		}
+		count++; */
 		output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
 		connect(x,y,z);
-
 	} 
 
 	public void connect(float x, float y, float z){
@@ -112,7 +120,8 @@ public class MainActivity extends Activity{
 			PrintWriter out = new PrintWriter(new BufferedWriter(
 					new OutputStreamWriter(socket.getOutputStream())),
 					true);
-			out.println("x: " + x + "\ny: " + y + "\nz: " + z + "\n");
+			//out.println("x: " + x + "\ny: " + y + "\nz: " + z + "\n");
+			out.println(x + ":" + y + ":" + z + ":");
 		}catch(UnknownHostException e){
 			e.printStackTrace();
 		}catch(IOException e){
