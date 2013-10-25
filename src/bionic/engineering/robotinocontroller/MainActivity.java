@@ -15,6 +15,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -32,12 +33,31 @@ public class MainActivity extends Activity{
 	protected void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		new Thread(new ClientThread()).start();
+		//new Thread(new ClientThread()).start();
+		
 		hookupSensorListener();
 
 		mGyroView = new GyroVisualizer(this);
 		LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
 		layout.addView(mGyroView);
+	}
+	
+	public void onPause(){
+		super.onPause();
+		if(socket != null){
+			try{
+				connect(999, 999, 999);
+				socket.close();
+			}
+			catch(IOException e){
+				// Have to catch this exception
+			}
+		}
+	}
+	
+	public void onResume(){
+		super.onResume();
+		new Thread(new ClientThread()).start();
 	}
 
 	@Override
@@ -50,7 +70,23 @@ public class MainActivity extends Activity{
 	private void hookupSensorListener()
 	{
 		SensorManager sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-		sm.registerListener(mGyroListener, sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
+		if(sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null)	//Test to see if cellphone has Gyroscope.
+			sm.registerListener(mGyroListener, sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);	//Success!
+		else
+		{
+			/**
+			 * Mobil har ikke gyroscope!!
+			 * Lag feilmelding og avslutt app!
+			 * 
+			 */
+			try{
+				connect(999, 999, 999);
+				socket.close();
+			}
+			catch(IOException e){
+				// Have to catch this exception
+			}
+		}
 	}
 
 	private SensorEventListener mGyroListener = new SensorEventListener(){
@@ -74,29 +110,39 @@ public class MainActivity extends Activity{
 
 			// Calculate time diff
 			long now = System.currentTimeMillis();
-			float timeDiff = (now - mLastTime) / 1000f;
+			float timeDiff = (now - mLastTime) / 500f; //1000
 			mLastTime = now;
 			if(timeDiff > 1){
 				// Make sure we don't go bananas after pause/resume
 				timeDiff = MIN_TIME_STEP;
-			}
+			}		
 
 			mRotationX += x * timeDiff;
-			if(mRotationX > 0.5f)
+			/*if(mRotationX > 0.5f)
 				mRotationX = 0.5f;
 			else if(mRotationX < -0.5f)
-				mRotationX = -0.5f;
+				mRotationX = -0.5f;*/
 
 			mRotationY += y * timeDiff;
-			if(mRotationY > 0.5f)
+			/*if(mRotationY > 0.5f)
 				mRotationY = 0.5f;
 			else if(mRotationY < -0.5f)
-				mRotationY = -0.5f;
-
-			mRotationZ += angularVelocity * timeDiff;
-
+				mRotationY = -0.5f;*/
+			
+			mRotationZ += angularVelocity * timeDiff;	
+			
+			// We want to make an 'area' where x, y or z is 0 so it's possible to stop Robotino.
+			if(mRotationX > -0.05f && mRotationX < 0.05f)
+				mRotationX = 0f;
+			if(mRotationY > -0.05f && mRotationY < 0.05f)
+				mRotationY = 0f;
+			if(mRotationZ > -0.05f && mRotationZ < 0.05f)
+				mRotationZ = 0f;
+			
 			mGyroView.setGyroRotation(mRotationX, mRotationY, mRotationZ);
+			//connect(mRotationX,mRotationY,mRotationZ);
 			updateOrientation(mRotationX, mRotationY, mRotationZ);
+			
 		}
 	};
 	
@@ -104,13 +150,6 @@ public class MainActivity extends Activity{
 	{
 		TextView output = (TextView) findViewById(R.id.output);
 		
-		
-		/* Testings.. Sender ikke alle kall på connect()
-		if(count % 10 == 0){
-			connect(x,y,z);
-			output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
-		}
-		count++; */
 		output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
 		connect(x,y,z);
 	} 
@@ -120,7 +159,6 @@ public class MainActivity extends Activity{
 			PrintWriter out = new PrintWriter(new BufferedWriter(
 					new OutputStreamWriter(socket.getOutputStream())),
 					true);
-			//out.println("x: " + x + "\ny: " + y + "\nz: " + z + "\n");
 			out.println(x + ":" + y + ":" + z + ":");
 		}catch(UnknownHostException e){
 			e.printStackTrace();
@@ -137,7 +175,6 @@ public class MainActivity extends Activity{
 			try{
 				InetAddress serverAddr = InetAddress.getByName(SERVER_IP);
 				socket = new Socket(serverAddr, SERVERPORT);
-				
 			}catch(UnknownHostException e1){
 				e1.printStackTrace();
 			}catch(IOException e1){
