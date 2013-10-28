@@ -26,6 +26,7 @@ public class MainActivity extends Activity{
 	int count = 0;	//Teller opp antall kall på connect for å ikke sende for mange oppdateringer
 
 	private Socket socket;
+	private SensorManager sensorManager;
 	private static final int SERVERPORT = 11400;
 	private static final String SERVER_IP = "10.10.1.59";
 
@@ -34,8 +35,14 @@ public class MainActivity extends Activity{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		//new Thread(new ClientThread()).start();
-		
-		hookupSensorListener();
+		sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		if(sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) == null){	//Test to see if cellphone has Gyroscope.
+			/**
+			 * Mobil har ikke gyroscope!!
+			 * Lag feilmelding og avslutt app!
+			 * 
+			 */
+		}
 
 		mGyroView = new GyroVisualizer(this);
 		LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
@@ -44,6 +51,7 @@ public class MainActivity extends Activity{
 	
 	public void onPause(){
 		super.onPause();
+		sensorManager.unregisterListener(mGyroListener);
 		if(socket != null){
 			try{
 				connect(999, 999, 999);
@@ -58,6 +66,7 @@ public class MainActivity extends Activity{
 	public void onResume(){
 		super.onResume();
 		new Thread(new ClientThread()).start();
+		sensorManager.registerListener(mGyroListener, sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);	//Success!
 	}
 
 	@Override
@@ -65,28 +74,6 @@ public class MainActivity extends Activity{
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
-	}
-
-	private void hookupSensorListener()
-	{
-		SensorManager sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-		if(sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null)	//Test to see if cellphone has Gyroscope.
-			sm.registerListener(mGyroListener, sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);	//Success!
-		else
-		{
-			/**
-			 * Mobil har ikke gyroscope!!
-			 * Lag feilmelding og avslutt app!
-			 * 
-			 */
-			try{
-				connect(999, 999, 999);
-				socket.close();
-			}
-			catch(IOException e){
-				// Have to catch this exception
-			}
-		}
 	}
 
 	private SensorEventListener mGyroListener = new SensorEventListener(){
@@ -110,7 +97,7 @@ public class MainActivity extends Activity{
 
 			// Calculate time diff
 			long now = System.currentTimeMillis();
-			float timeDiff = (now - mLastTime) / 500f; //1000
+			float timeDiff = (now - mLastTime) / 400f; //1000
 			mLastTime = now;
 			if(timeDiff > 1){
 				// Make sure we don't go bananas after pause/resume
@@ -132,15 +119,15 @@ public class MainActivity extends Activity{
 			mRotationZ += angularVelocity * timeDiff;	
 			
 			// We want to make an 'area' where x, y or z is 0 so it's possible to stop Robotino.
-			if(mRotationX > -0.05f && mRotationX < 0.05f)
+			if(mRotationX > -0.02f && mRotationX < 0.02f)
 				mRotationX = 0f;
-			if(mRotationY > -0.05f && mRotationY < 0.05f)
+			if(mRotationY > -0.02f && mRotationY < 0.02f)
 				mRotationY = 0f;
-			if(mRotationZ > -0.05f && mRotationZ < 0.05f)
+			if(mRotationZ > -0.02f && mRotationZ < 0.02f)
 				mRotationZ = 0f;
 			
 			mGyroView.setGyroRotation(mRotationX, mRotationY, mRotationZ);
-			//connect(mRotationX,mRotationY,mRotationZ);
+			connect(mRotationX,mRotationY,mRotationZ);
 			updateOrientation(mRotationX, mRotationY, mRotationZ);
 			
 		}
@@ -151,7 +138,7 @@ public class MainActivity extends Activity{
 		TextView output = (TextView) findViewById(R.id.output);
 		
 		output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
-		connect(x,y,z);
+		//connect(x,y,z);
 	} 
 
 	public void connect(float x, float y, float z){
