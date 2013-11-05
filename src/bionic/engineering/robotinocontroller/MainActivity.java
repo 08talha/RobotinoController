@@ -95,8 +95,8 @@ public class MainActivity extends Activity{
 		@Override
 		public void onSensorChanged(SensorEvent event){
 			float[] values = event.values;
-			float y = -values[0];
-			float x = values[1];
+			float x = -values[0];	//Robotino's y-axis is inverted compared to the phone's y-axis.
+			float y = values[1];
 			float z = values[2];
 			
 			float angularVelocityZ = z * 0.96f; 		// Minor adjustment to avoid drift on Nexus S
@@ -113,16 +113,16 @@ public class MainActivity extends Activity{
 			mVelocityY += y * timeDiff;
 			mVelocityZ += angularVelocityZ * timeDiffZ;
 			
-			// Make a zone around each axis where
-			if(mVelocityX > -0.02f && mVelocityX < 0.02f)
+			// Make a zone around each axis where slow movements doesn't effect Robotino (the velocity is set to 0 in this zone).
+			if(mVelocityX > -0.06f && mVelocityX < 0.06f)
 				mVelocityX = 0f;
-			if(mVelocityY > -0.06f && mVelocityY < 0.06f)	//
+			if(mVelocityY > -0.02f && mVelocityY < 0.02f)
 				mVelocityY = 0f;
 			if(mVelocityZ > -0.02f && mVelocityZ < 0.02f)
 				mVelocityZ = 0f;
 				
-			connect(mVelocityX, mVelocityY, mVelocityZ);						
-			updateOrientation(mVelocityX, mVelocityY, mVelocityZ);
+			connect(mVelocityY, mVelocityX, mVelocityZ);	//Robotino's x-axis is the phone's y-axis						
+			updateOrientation(mVelocityY, mVelocityX, mVelocityZ);
 		}
 	};
 	
