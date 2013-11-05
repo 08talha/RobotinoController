@@ -15,29 +15,28 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends Activity{
-
-	private GyroVisualizer mGyroView;
-	int count = 0;	//Teller opp antall kall på connect for å ikke sende for mange oppdateringer
-
-	private Socket socket;
-	private SensorManager sensorManager;
-	private static final int SERVERPORT = 11400;
-	private static final String SERVER_IP = "10.10.1.59";
+	private GyroVisualizer mGyroView;						//Visualizing gyro on phone
+	private Socket mSocket;									
+	private SensorManager mSensorManager;
+	private static final float TIMEDIFF_FACTOR = 400f;
+	private static final int SERVERPORT = 11400;			
+	private static final String SERVER_IP = "10.10.1.59";	//Server receiving signals from phone
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		//new Thread(new ClientThread()).start();
-		sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-		if(sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) == null){	//Test to see if cellphone has Gyroscope.
-			/*
+
+		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		
+		//Test to see if cellphone has Gyroscope.
+		if(mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) == null){
+			/**
 			 * Mobil har ikke gyroscope!!
 			 * Lag feilmelding og avslutt app!
 			 * 
@@ -51,11 +50,11 @@ public class MainActivity extends Activity{
 	
 	public void onPause(){
 		super.onPause();
-		sensorManager.unregisterListener(mGyroListener);
-		if(socket != null){
+		mSensorManager.unregisterListener(mGyroListener);
+		if(mSocket != null){
 			try{
-				connect(999, 999, 999);	// To send log-of-signal
-				socket.close();
+				connect(999, 999, 999);					//Sends 999 to close socket
+				mSocket.close();
 			}
 			catch(IOException e){
 				// Have to catch this exception
@@ -66,21 +65,19 @@ public class MainActivity extends Activity{
 	public void onResume(){
 		super.onResume();
 		new Thread(new ClientThread()).start();
-		sensorManager.registerListener(mGyroListener, sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);	//Success!
+		mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu){
-		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
 
 	private SensorEventListener mGyroListener = new SensorEventListener(){
-
 		private static final float MIN_TIME_STEP = (1f / 40f);
-		private long mLastTime = System.currentTimeMillis();
-		private float mRotationX, mRotationY, mRotationZ;
+		private long mLastTime = System.currentTimeMillis();	//Time of last sensorupdate
+		private float mVelocityX, mVelocityY, mVelocityZ;		//Velocities in each direction
 
 		@Override
 		public void onAccuracyChanged(Sensor sensor, int accuracy){
@@ -93,48 +90,45 @@ public class MainActivity extends Activity{
 			float x = values[1];
 			float z = values[2];
 
-			float angularVelocity = z * 0.96f; // Minor adjustment to avoid drift on Nexus S
+			float angularVelocityZ = z * 0.96f; 		// Minor adjustment to avoid drift on Nexus S
 
 			// Calculate time diff
 			long now = System.currentTimeMillis();
-			float timeDiff = (now - mLastTime) / 400f; //1000
+			float timeDiff = (now - mLastTime) / TIMEDIFF_FACTOR;	//Adjust sensibility
 			mLastTime = now;
 			if(timeDiff > 1){
-				// Make sure we don't go bananas after pause/resume
-				timeDiff = MIN_TIME_STEP;
+				timeDiff = MIN_TIME_STEP; 				// Make sure we don't go bananas after pause/resume
 			}		
-
-			mRotationX += x * timeDiff;
-			mRotationY += y * timeDiff;			
-			mRotationZ += angularVelocity * timeDiff;
+			mVelocityX += x * timeDiff;
+			mVelocityY += y * timeDiff;
+			mVelocityZ += angularVelocityZ * timeDiff;
 			
-			// We want to make an 'area' where x, y or z is 0 so it's possible to stop Robotino.
-			if(mRotationX > -0.02f && mRotationX < 0.02f)
-				mRotationX = 0f;
-			if(mRotationY > -0.02f && mRotationY < 0.02f)
-				mRotationY = 0f;
-			if(mRotationZ > -0.02f && mRotationZ < 0.02f)
-				mRotationZ = 0f;
+			// Make an 'area' where x, y or z is 0 so it's possible to stop Robotino.
+			if(mVelocityX > -0.02f && mVelocityX < 0.02f)
+				mVelocityX = 0f;
+			if(mVelocityY > -0.02f && mVelocityY < 0.02f)
+				mVelocityY = 0f;
+			if(mVelocityZ > -0.02f && mVelocityZ < 0.02f)
+				mVelocityZ = 0f;
 			
-			mGyroView.setGyroRotation(mRotationX, mRotationY, mRotationZ);
-			connect(mRotationX,mRotationY,mRotationZ);
-			updateOrientation(mRotationX, mRotationY, mRotationZ);
-			
+			mGyroView.setGyroRotation(mVelocityX, mVelocityY, mVelocityZ);	
+			connect(mVelocityX,mVelocityY,mVelocityZ);						
+			updateOrientation(mVelocityX, mVelocityY, mVelocityZ);
 		}
 	};
 	
+	//Updates coordinates on the phone screen
 	private void updateOrientation(float x, float y, float z)
 	{
 		TextView output = (TextView) findViewById(R.id.output);
-		
 		output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
-		//connect(x,y,z);
 	} 
 
+	//Sends coordinates to server
 	public void connect(float x, float y, float z){
 		try{
 			PrintWriter out = new PrintWriter(new BufferedWriter(
-					new OutputStreamWriter(socket.getOutputStream())),
+					new OutputStreamWriter(mSocket.getOutputStream())),
 					true);
 			out.println(x + ":" + y + ":" + z + ":");
 		}catch(UnknownHostException e){
@@ -151,7 +145,7 @@ public class MainActivity extends Activity{
 		public void run(){
 			try{
 				InetAddress serverAddr = InetAddress.getByName(SERVER_IP);
-				socket = new Socket(serverAddr, SERVERPORT);
+				mSocket = new Socket(serverAddr, SERVERPORT);
 			}catch(UnknownHostException e1){
 				e1.printStackTrace();
 			}catch(IOException e1){

@@ -7,14 +7,26 @@ import android.graphics.Paint.Style;
 import android.util.AttributeSet;
 import android.view.View;
 
+/*
+ * Copyright (C) 2011 Adam NybŠck
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 public class GyroVisualizer extends View {
-
     private static final float RADIANS_TO_DEGREES = (float) (180d / Math.PI);
     private static final float RADIUS = 150;
-
     private Paint mGyroPaint = new Paint();
-
-    private float mGyroRotationX, mGyroRotationY, mGyroRotationZ;
+    private float mX, mY, mZ;
 
     public GyroVisualizer(Context context) {
         this(context, null);
@@ -37,26 +49,24 @@ public class GyroVisualizer extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        
-
-        float midX = getWidth() / 2f;
+        float midX = getWidth() / 2f;		//Finds center of phonescreen
         float midY = getHeight() / 2f;
 
         // Gyroscope
         canvas.save();
-        canvas.rotate(mGyroRotationZ * RADIANS_TO_DEGREES, midX, midY);
+        canvas.rotate(mZ * RADIANS_TO_DEGREES, midX, midY);
         canvas.drawLine(midX, midY - RADIUS, midX, midY + RADIUS, mGyroPaint);
         canvas.drawLine(midX - RADIUS, midY, midX + RADIUS, midY, mGyroPaint);
         canvas.drawCircle(midX, midY, RADIUS, mGyroPaint);
         canvas.restore();
 
-        canvas.drawCircle(midX + mGyroRotationY * 350, midY + mGyroRotationX * 350, 10, mGyroPaint);
+        canvas.drawCircle(midX + mY * 350, midY + mX * 350, 10, mGyroPaint);
         invalidate();
     }
 
     public void setGyroRotation(float x, float y, float z) {
-        mGyroRotationX = x;
-        mGyroRotationY = y;
-        mGyroRotationZ = z;
+        mX = x;
+        mY = y;
+        mZ = z;
     }
 }
