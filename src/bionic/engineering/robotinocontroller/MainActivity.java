@@ -75,7 +75,6 @@ public class MainActivity extends Activity{
 	public void onResume(){
 		super.onResume();
 		new Thread(new ClientThread()).start();
-		//mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
 	}
 
 	@Override
