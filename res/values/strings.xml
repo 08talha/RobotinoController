@@ -3,6 +3,7 @@
 
     <string name="app_name">RobotinoController</string>
     <string name="action_settings">Settings</string>
-    <string name="hello_world">Hei Anders!</string>
+    <string name="btnDriveText">Kjør</string>
+    <string name="outputText"></string>
 
 </resources>

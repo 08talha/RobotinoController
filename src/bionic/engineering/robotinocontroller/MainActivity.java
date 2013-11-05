@@ -16,13 +16,20 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnTouchListener;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class MainActivity extends Activity{
+	Button btnDrive;
+	BtnDriveOnTouchListener btnDriveListener;
 	private GyroVisualizer mGyroView;						//Visualizing gyro on phone
 	private Socket mSocket;									
 	private SensorManager mSensorManager;
+	private float mVelocityX, mVelocityY, mVelocityZ;		//Velocities in each direction
 	private static final float TIMEDIFF_FACTOR = 400f;
 	private static final int SERVERPORT = 11400;			
 	private static final String SERVER_IP = "10.10.1.59";	//Server receiving signals from phone
@@ -31,6 +38,9 @@ public class MainActivity extends Activity{
 	protected void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		btnDrive = (Button)findViewById(R.id.btnDrive);
+		btnDriveListener = new BtnDriveOnTouchListener();
+		btnDrive.setOnTouchListener(btnDriveListener);
 
 		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 		
@@ -65,7 +75,7 @@ public class MainActivity extends Activity{
 	public void onResume(){
 		super.onResume();
 		new Thread(new ClientThread()).start();
-		mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
+		//mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
 	}
 
 	@Override
@@ -77,7 +87,6 @@ public class MainActivity extends Activity{
 	private SensorEventListener mGyroListener = new SensorEventListener(){
 		private static final float MIN_TIME_STEP = (1f / 40f);
 		private long mLastTime = System.currentTimeMillis();	//Time of last sensorupdate
-		private float mVelocityX, mVelocityY, mVelocityZ;		//Velocities in each direction
 
 		@Override
 		public void onAccuracyChanged(Sensor sensor, int accuracy){
@@ -140,6 +149,7 @@ public class MainActivity extends Activity{
 		}
 	}
 
+	// The thread that keeps the socket that talks to the Robotino-server
 	class ClientThread implements Runnable{
 		@Override
 		public void run(){
@@ -151,6 +161,24 @@ public class MainActivity extends Activity{
 			}catch(IOException e1){
 				e1.printStackTrace();
 			}
+		}
+	}
+	
+	// Listening for changes on btnDrive; our gas pedal
+	class BtnDriveOnTouchListener implements OnTouchListener{
+		
+		@Override
+		public boolean onTouch(View btn, MotionEvent event) {
+			switch(event.getAction()){
+			case MotionEvent.ACTION_DOWN:
+				mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
+				break;
+			case MotionEvent.ACTION_UP:
+				mSensorManager.unregisterListener(mGyroListener);
+				mVelocityX = 0; mVelocityY = 0; mVelocityZ = 0;
+				break;
+			}
+			return false;
 		}
 	}
 }

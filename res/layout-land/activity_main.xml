@@ -14,7 +14,14 @@
         android:id="@+id/output"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/hello_world" />
+        android:text="@string/outputText" />
+    
+    <Button 
+        android:id="@+id/btnDrive"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+		android:background="#33FF00"
+		android:text="@string/btnDriveText"/>
     
 
 </LinearLayout>
