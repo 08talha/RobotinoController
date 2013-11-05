@@ -30,7 +30,8 @@ public class MainActivity extends Activity{
 	private Socket mSocket;									
 	private SensorManager mSensorManager;
 	private float mVelocityX, mVelocityY, mVelocityZ;		//Velocities in each direction
-	private static final float TIMEDIFF_FACTOR = 400f;
+	private static final float TIMEDIFF_FACTOR = 1000f;
+	private static final float TIMEDIFF_FACTOR_Z = 500f;	//More sensitive on z-axis
 	private static final int SERVERPORT = 11400;			
 	private static final String SERVER_IP = "10.10.1.59";	//Server receiving signals from phone
 
@@ -97,30 +98,30 @@ public class MainActivity extends Activity{
 			float y = -values[0];
 			float x = values[1];
 			float z = values[2];
-
+			
 			float angularVelocityZ = z * 0.96f; 		// Minor adjustment to avoid drift on Nexus S
 
 			// Calculate time diff
 			long now = System.currentTimeMillis();
 			float timeDiff = (now - mLastTime) / TIMEDIFF_FACTOR;	//Adjust sensibility
+			float timeDiffZ = (now - mLastTime) / TIMEDIFF_FACTOR_Z;
 			mLastTime = now;
-			if(timeDiff > 1){
-				timeDiff = MIN_TIME_STEP; 				// Make sure we don't go bananas after pause/resume
+			if(timeDiff > 1 || timeDiffZ > 1){
+				timeDiff = timeDiffZ = MIN_TIME_STEP; 	// Make sure we don't go bananas after pause/resume
 			}		
 			mVelocityX += x * timeDiff;
 			mVelocityY += y * timeDiff;
-			mVelocityZ += angularVelocityZ * timeDiff;
+			mVelocityZ += angularVelocityZ * timeDiffZ;
 			
-			// Make an 'area' where x, y or z is 0 so it's possible to stop Robotino.
+			// Make a zone around each axis where
 			if(mVelocityX > -0.02f && mVelocityX < 0.02f)
 				mVelocityX = 0f;
-			if(mVelocityY > -0.02f && mVelocityY < 0.02f)
+			if(mVelocityY > -0.06f && mVelocityY < 0.06f)	//
 				mVelocityY = 0f;
 			if(mVelocityZ > -0.02f && mVelocityZ < 0.02f)
 				mVelocityZ = 0f;
-			
-			mGyroView.setGyroRotation(mVelocityX, mVelocityY, mVelocityZ);	
-			connect(mVelocityX,mVelocityY,mVelocityZ);						
+				
+			connect(mVelocityX, mVelocityY, mVelocityZ);						
 			updateOrientation(mVelocityX, mVelocityY, mVelocityZ);
 		}
 	};
@@ -128,6 +129,7 @@ public class MainActivity extends Activity{
 	//Updates coordinates on the phone screen
 	private void updateOrientation(float x, float y, float z)
 	{
+		mGyroView.setGyroRotation(-x, -y, -z);
 		TextView output = (TextView) findViewById(R.id.output);
 		output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
 	} 
@@ -175,6 +177,8 @@ public class MainActivity extends Activity{
 			case MotionEvent.ACTION_UP:
 				mSensorManager.unregisterListener(mGyroListener);
 				mVelocityX = 0; mVelocityY = 0; mVelocityZ = 0;
+				updateOrientation(mVelocityX, mVelocityY, mVelocityZ);
+				mGyroView.setGyroRotation(mVelocityX, mVelocityY, mVelocityZ);
 				break;
 			}
 			return false;

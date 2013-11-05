@@ -24,8 +24,10 @@ import android.view.View;
  */
 public class GyroVisualizer extends View {
     private static final float RADIANS_TO_DEGREES = (float) (180d / Math.PI);
-    private static final float RADIUS = 150;
+    private static final float RADIUS = 250;
     private Paint mGyroPaint = new Paint();
+    private Paint mGyroPaintX = new Paint();
+    private Paint mGyroPaintY = new Paint();
     private float mX, mY, mZ;
 
     public GyroVisualizer(Context context) {
@@ -41,8 +43,13 @@ public class GyroVisualizer extends View {
 
         mGyroPaint.setColor(0x77000000);
         mGyroPaint.setStyle(Style.STROKE);
-        mGyroPaint.setStrokeWidth(5);
+        mGyroPaint.setStrokeWidth(10);
         mGyroPaint.setAntiAlias(true);
+        
+        mGyroPaintY.setColor(0x7700FF00);
+        mGyroPaintY.setStyle(Style.STROKE);
+        mGyroPaintY.setStrokeWidth(10);
+        mGyroPaintY.setAntiAlias(true);
     }
 
     @Override
@@ -55,7 +62,8 @@ public class GyroVisualizer extends View {
         // Gyroscope
         canvas.save();
         canvas.rotate(mZ * RADIANS_TO_DEGREES, midX, midY);
-        canvas.drawLine(midX, midY - RADIUS, midX, midY + RADIUS, mGyroPaint);
+        canvas.drawLine(midX, midY, midX, midY - RADIUS, mGyroPaintY);	
+        canvas.drawLine(midX, midY, midX, midY + RADIUS, mGyroPaint);
         canvas.drawLine(midX - RADIUS, midY, midX + RADIUS, midY, mGyroPaint);
         canvas.drawCircle(midX, midY, RADIUS, mGyroPaint);
         canvas.restore();
