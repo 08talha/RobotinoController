@@ -37,7 +37,7 @@ public class MainActivity extends Activity{
 		//new Thread(new ClientThread()).start();
 		sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 		if(sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) == null){	//Test to see if cellphone has Gyroscope.
-			/**
+			/*
 			 * Mobil har ikke gyroscope!!
 			 * Lag feilmelding og avslutt app!
 			 * 
@@ -54,7 +54,7 @@ public class MainActivity extends Activity{
 		sensorManager.unregisterListener(mGyroListener);
 		if(socket != null){
 			try{
-				connect(999, 999, 999);
+				connect(999, 999, 999);	// To send log-of-signal
 				socket.close();
 			}
 			catch(IOException e){
@@ -105,18 +105,8 @@ public class MainActivity extends Activity{
 			}		
 
 			mRotationX += x * timeDiff;
-			/*if(mRotationX > 0.5f)
-				mRotationX = 0.5f;
-			else if(mRotationX < -0.5f)
-				mRotationX = -0.5f;*/
-
-			mRotationY += y * timeDiff;
-			/*if(mRotationY > 0.5f)
-				mRotationY = 0.5f;
-			else if(mRotationY < -0.5f)
-				mRotationY = -0.5f;*/
-			
-			mRotationZ += angularVelocity * timeDiff;	
+			mRotationY += y * timeDiff;			
+			mRotationZ += angularVelocity * timeDiff;
 			
 			// We want to make an 'area' where x, y or z is 0 so it's possible to stop Robotino.
 			if(mRotationX > -0.02f && mRotationX < 0.02f)
