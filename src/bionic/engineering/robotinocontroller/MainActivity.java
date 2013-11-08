@@ -41,12 +41,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-	private Handler mHandler;
+	//private Handler mHandler;
 	private Button mBtnDrive;
 	private BtnDriveOnTouchListener mBtnDriveListener;
 	private GyroVisualizer mGyroView; // Visualizing gyro on phone
 	private Socket mSocket;
 	private SensorManager mSensorManager;
+	private GyroListener mGyroListener;
 	private float mVelocityX, mVelocityY, mVelocityZ; // Velocities in each direction
 	private static final float TIMEDIFF_FACTOR = 1000f;
 	private static final float TIMEDIFF_FACTOR_Z = 500f; // More sensitive on z-axis
@@ -67,7 +68,7 @@ public class MainActivity extends Activity {
 
 		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
-		mHandler = new Handler();
+		//mHandler = new Handler();
 
 		// Test to see if cellphone has Gyroscope.
 		if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) == null) {
@@ -106,48 +107,6 @@ public class MainActivity extends Activity {
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-
-	private SensorEventListener mGyroListener = new SensorEventListener() {
-		private static final float MIN_TIME_STEP = (1f / 40f);
-		private long mLastTime = System.currentTimeMillis(); // Time of last sensorupdate
-
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			float[] values = event.values;
-			float x = -values[0]; // Robotino's y-axis is inverted compared to the phone's y-axis.
-			float y = values[1];
-			float z = values[2];
-
-			float angularVelocityZ = z * 0.96f; // Minor adjustment to avoid drift on Nexus S
-
-			// Calculate time diff
-			long now = System.currentTimeMillis();
-			float timeDiff = (now - mLastTime) / TIMEDIFF_FACTOR; // Adjust sensibility
-			float timeDiffZ = (now - mLastTime) / TIMEDIFF_FACTOR_Z;
-			mLastTime = now;
-			if (timeDiff > 1 || timeDiffZ > 1) {
-				timeDiff = timeDiffZ = MIN_TIME_STEP; // Make sure we don't go bananas after pause/resume
-			}
-			mVelocityX += x * timeDiff;
-			mVelocityY += y * timeDiff;
-			mVelocityZ += angularVelocityZ * timeDiffZ;
-
-			// Make a zone around each axis where slow movements doesn't effect Robotino (the velocity is set to 0 in this zone).
-			if (mVelocityX > -0.06f && mVelocityX < 0.06f)
-				mVelocityX = 0f;
-			if (mVelocityY > -0.02f && mVelocityY < 0.02f)
-				mVelocityY = 0f;
-			if (mVelocityZ > -0.02f && mVelocityZ < 0.02f)
-				mVelocityZ = 0f;
-
-			sendToRobotino(mVelocityY, mVelocityX, mVelocityZ); // Robotino's x-axis is the phone's y-axis
-			updateOrientation(mVelocityY, mVelocityX, mVelocityZ);
-		}
-	};
 
 	// Updates coordinates on the phone's screen
 	private void updateOrientation(float x, float y, float z) {
@@ -197,43 +156,9 @@ public class MainActivity extends Activity {
 			}
 		}
 	}*/
-
-	// The thread that keeps the socket that speaks to the Robotino-server
-	class SpeakToRobotinoThread implements Runnable{
-		String messageFromRobotino = "";
-	  		@Override 
-	  		public void run(){
-	  			try{ 
-	  				//InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
-	  				//mSocket = new Socket(serverAddr, SERVERPORT);
-	  				//new Thread(new ReadFromRobotinoThread()).start();
-	  				
-	  				BufferedReader inFromServer = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
-					int charsRead = 0;
-					char[] buffer = new char[2048];
-
-					while ((charsRead = inFromServer.read(buffer)) != -1)
-						messageFromRobotino += new String(buffer).substring(0, charsRead);
-
-					mHandler.post(new Runnable() {
-						@Override
-						public void run() {
-							if(messageFromRobotino.equals("Bumper-bumper")){	//Crash-signal
-								Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-								vib.vibrate(1000);	//Vibrate for 1000ms
-							}
-						}
-
-					});
-	  			}catch(UnknownHostException e1){ 
-	  				e1.printStackTrace(); 
-	  			} 
-	  			catch(IOException e1){ 
-	  				e1.printStackTrace(); 
-	  			} 
-	  		} 
-	  }
 	
+	
+	// Connects to server.
 	class ConnectToRobotino extends AsyncTask<String, String, String>
 	{
 		private ProgressDialog pDialog = null;
@@ -255,6 +180,8 @@ public class MainActivity extends Activity {
             { 
   				InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
   				mSocket = new Socket(serverAddr, SERVERPORT);
+
+  	        	new Thread(new SpeakToRobotinoThread(MainActivity.this, mSocket)).start();
             }
             catch(UnknownHostException e1)
             { 
@@ -265,7 +192,7 @@ public class MainActivity extends Activity {
   				e1.printStackTrace(); 
   			}
         	
-        	new Thread(new SpeakToRobotinoThread()).start();
+        	mGyroListener = new GyroListener();
             return null;
         }
  
@@ -275,6 +202,7 @@ public class MainActivity extends Activity {
         }
     }
 
+	
 	// Listening for changes on btnDrive; our "gas pedal"
 	// We register the SensorListener when pushing down on the drive-button, and unregister it when releasing button.
 	// We also set all the axis to 0 so we don't continue driving on a new "push-down".
@@ -298,4 +226,48 @@ public class MainActivity extends Activity {
 			return false;
 		}
 	}
+	
+	
+	// Listening for changes on gyroscope sensor.
+	class GyroListener implements SensorEventListener {
+		private static final float MIN_TIME_STEP = (1f / 40f);
+		private long mLastTime = System.currentTimeMillis(); // Time of last sensorupdate
+
+		@Override
+		public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		}
+
+		@Override
+		public void onSensorChanged(SensorEvent event) {
+			float[] values = event.values;
+			float x = -values[0]; // Robotino's y-axis is inverted compared to the phone's y-axis.
+			float y = values[1];
+			float z = values[2];
+
+			float angularVelocityZ = z * 0.96f; // Minor adjustment to avoid drift on Nexus S
+
+			// Calculate time diff
+			long now = System.currentTimeMillis();
+			float timeDiff = (now - mLastTime) / TIMEDIFF_FACTOR; // Adjust sensibility
+			float timeDiffZ = (now - mLastTime) / TIMEDIFF_FACTOR_Z;
+			mLastTime = now;
+			if (timeDiff > 1 || timeDiffZ > 1) {
+				timeDiff = timeDiffZ = MIN_TIME_STEP; // Make sure we don't go bananas after pause/resume
+			}
+			mVelocityX += x * timeDiff;
+			mVelocityY += y * timeDiff;
+			mVelocityZ += angularVelocityZ * timeDiffZ;
+
+			// Make a zone around each axis where slow movements doesn't effect Robotino (the velocity is set to 0 in this zone).
+			if (mVelocityX > -0.06f && mVelocityX < 0.06f)
+				mVelocityX = 0f;
+			if (mVelocityY > -0.02f && mVelocityY < 0.02f)
+				mVelocityY = 0f;
+			if (mVelocityZ > -0.02f && mVelocityZ < 0.02f)
+				mVelocityZ = 0f;
+
+			sendToRobotino(mVelocityY, mVelocityX, mVelocityZ); // Robotino's x-axis is the phone's y-axis
+			updateOrientation(mVelocityY, mVelocityX, mVelocityZ);
+		}
+	};
 }
