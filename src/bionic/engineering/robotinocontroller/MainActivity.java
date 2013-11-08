@@ -6,18 +6,31 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Vibrator;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
@@ -25,6 +38,7 @@ import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	private Handler mHandler;
@@ -83,7 +97,8 @@ public class MainActivity extends Activity {
 
 	public void onResume() {
 		super.onResume();
-		new Thread(new SpeakToRobotinoThread()).start();
+		//new Thread(new SpeakToRobotinoThread()).start();
+		new ConnectToRobotino().execute();
 	}
 
 	@Override
@@ -189,8 +204,8 @@ public class MainActivity extends Activity {
 	  		@Override 
 	  		public void run(){
 	  			try{ 
-	  				InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
-	  				mSocket = new Socket(serverAddr, SERVERPORT);
+	  				//InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
+	  				//mSocket = new Socket(serverAddr, SERVERPORT);
 	  				//new Thread(new ReadFromRobotinoThread()).start();
 	  				
 	  				BufferedReader inFromServer = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
@@ -218,6 +233,47 @@ public class MainActivity extends Activity {
 	  			} 
 	  		} 
 	  }
+	
+	class ConnectToRobotino extends AsyncTask<String, String, String>
+	{
+		private ProgressDialog pDialog = null;
+		String messageFromRobotino = "";
+		
+        @Override
+        protected void onPreExecute() 
+        {
+            super.onPreExecute();
+            pDialog = new ProgressDialog(MainActivity.this);
+            pDialog.setMessage("Kobler til server...");
+            pDialog.setCancelable(false);
+            pDialog.show();
+        }
+ 
+        protected String doInBackground(String... args) 
+        {
+        	try
+            { 
+  				InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
+  				mSocket = new Socket(serverAddr, SERVERPORT);
+            }
+            catch(UnknownHostException e1)
+            { 
+  				e1.printStackTrace(); 
+  			} 
+  			catch(IOException e1)
+  			{ 
+  				e1.printStackTrace(); 
+  			}
+        	
+        	new Thread(new SpeakToRobotinoThread()).start();
+            return null;
+        }
+ 
+        protected void onPostExecute(String message) 
+        {
+            pDialog.dismiss();
+        }
+    }
 
 	// Listening for changes on btnDrive; our "gas pedal"
 	// We register the SensorListener when pushing down on the drive-button, and unregister it when releasing button.
