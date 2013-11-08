@@ -22,6 +22,7 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -41,7 +42,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
-	//private Handler mHandler;
+	
+	private static final float TIMEDIFF_FACTOR = 1000f;
+	private static final float TIMEDIFF_FACTOR_Z = 500f; // More sensitive on z-axis
+	private static final int SERVERPORT = 11400;
+	private static final String SERVER_IP = "10.10.1.59"; // Server receiving signals from phone
+	
+	private Handler mHandler;
 	private Button mBtnDrive;
 	private BtnDriveOnTouchListener mBtnDriveListener;
 	private GyroVisualizer mGyroView; // Visualizing gyro on phone
@@ -49,10 +56,7 @@ public class MainActivity extends Activity {
 	private SensorManager mSensorManager;
 	private GyroListener mGyroListener;
 	private float mVelocityX, mVelocityY, mVelocityZ; // Velocities in each direction
-	private static final float TIMEDIFF_FACTOR = 1000f;
-	private static final float TIMEDIFF_FACTOR_Z = 500f; // More sensitive on z-axis
-	private static final int SERVERPORT = 11400;
-	private static final String SERVER_IP = "10.10.1.59"; // Server receiving signals from phone
+	private boolean mIsConnected;
 	
 	//private static final int SERVERPORT = 5444;
 	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
@@ -62,7 +66,7 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		new ConnectToRobotino().execute();
+		new ConnectToBrain().execute();
 		
 		mBtnDrive = (Button) findViewById(R.id.btnDrive);
 		mBtnDriveListener = new BtnDriveOnTouchListener();
@@ -70,7 +74,7 @@ public class MainActivity extends Activity {
 
 		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
-		//mHandler = new Handler();
+		mHandler = new Handler();
 
 		// Test to see if cellphone has Gyroscope.
 		if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) == null) {
@@ -161,7 +165,7 @@ public class MainActivity extends Activity {
 	
 	
 	// Connects to server.
-	class ConnectToRobotino extends AsyncTask<String, String, String>
+	class ConnectToBrain extends AsyncTask<String, String, String>
 	{
 		private ProgressDialog pDialog = null;
 		String messageFromRobotino = "";
@@ -182,24 +186,30 @@ public class MainActivity extends Activity {
             { 
   				InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
   				mSocket = new Socket(serverAddr, SERVERPORT);
-  				new Thread(new SpeakToRobotinoThread(MainActivity.this, mSocket)).start();
+  				new Thread(new SpeakToRobotinoThread()).start();
             }
             catch(UnknownHostException e1)
             { 
-  				e1.printStackTrace(); 
+  				return "error";
   			} 
   			catch(IOException e1)
   			{ 
-  				e1.printStackTrace(); 
+  				return "error"; 
   			}
         	
         	mGyroListener = new GyroListener();
-            return null;
+            return "ok";
         }
  
         protected void onPostExecute(String message) 
         {
             pDialog.dismiss();
+            
+  			if(message.equals("error")){
+            	mIsConnected = false;
+            	mBtnDrive.setBackgroundColor(Color.RED);
+            	mBtnDrive.setText("Trykk for å koble til");
+            }
         }
     }
 
@@ -213,7 +223,10 @@ public class MainActivity extends Activity {
 		public boolean onTouch(View btn, MotionEvent event) {
 			switch (event.getAction()) {
 			case MotionEvent.ACTION_DOWN:
-				mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
+				if(!mIsConnected)
+					new ConnectToBrain().execute();
+				else
+					mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
 				break;
 			case MotionEvent.ACTION_UP:
 				mSensorManager.unregisterListener(mGyroListener);
@@ -270,5 +283,54 @@ public class MainActivity extends Activity {
 			sendToRobotino(mVelocityY, mVelocityX, mVelocityZ); // Robotino's x-axis is the phone's y-axis
 			updateOrientation(mVelocityY, mVelocityX, mVelocityZ);
 		}
-	};
+	}
+	
+	class SpeakToRobotinoThread implements Runnable{
+		String messageFromRobotino = "";
+		
+		@Override 
+		public void run(){
+			try{
+				while(mSocket.isConnected()){
+					BufferedReader inFromServer = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
+					String lineRead = "";
+			
+					lineRead = inFromServer.readLine();
+						messageFromRobotino = lineRead;
+			
+					mHandler.post(new Runnable() {
+						@Override
+						public void run() {
+							if(messageFromRobotino == null || messageFromRobotino.equals("H")){	//Crash-signal
+								try{
+									mSocket.close();
+									mIsConnected = false;
+								}
+								catch(IOException io){
+									io.printStackTrace();
+								}
+									Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+									vib.vibrate(1000);	//Vibrate for 1000ms
+									mBtnDrive.setBackgroundColor(Color.RED);
+									mBtnDrive.setText("Trykk for å koble til");
+							}
+							else if(messageFromRobotino.equals("connected")){
+				  				mIsConnected = true;
+				  				mBtnDrive.setBackgroundColor(Color.GREEN);
+				            	mBtnDrive.setText("Kjør");
+							}
+						}
+					});
+				}
+			}catch(UnknownHostException e1){ 
+				e1.printStackTrace(); 
+			} 
+			catch(IOException e1){ 
+				e1.printStackTrace(); 
+			}
+			catch(Exception e1){
+				e1.printStackTrace(); 
+			}
+		} 
+	}
 }
