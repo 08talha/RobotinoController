@@ -12,7 +12,7 @@
 
     <LinearLayout
         android:id="@+id/leftLayout"
-        android:layout_width="75dp"
+        android:layout_width="95dp"
         android:layout_height="match_parent"
         android:orientation="vertical" >
         

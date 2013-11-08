@@ -36,11 +36,11 @@ public class MainActivity extends Activity {
 	private float mVelocityX, mVelocityY, mVelocityZ; // Velocities in each direction
 	private static final float TIMEDIFF_FACTOR = 1000f;
 	private static final float TIMEDIFF_FACTOR_Z = 500f; // More sensitive on z-axis
-	//private static final int SERVERPORT = 11400;
-	//private static final String SERVER_IP = "10.10.1.59"; // Server receiving signals from phone
+	private static final int SERVERPORT = 11400;
+	private static final String SERVER_IP = "10.10.1.59"; // Server receiving signals from phone
 	
-	private static final int SERVERPORT = 4444;
-	private static final String SERVER_IP = "192.168.1.16"; // Server receiving signals from phone
+	//private static final int SERVERPORT = 5444;
+	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -194,16 +194,16 @@ public class MainActivity extends Activity {
 	  				//new Thread(new ReadFromRobotinoThread()).start();
 	  				
 	  				BufferedReader inFromServer = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
-					int charsRead = 0;
-					char[] buffer = new char[2048];
+					String lineRead = "";
+					//char[] buffer = new char[2048];
 
-					while ((charsRead = inFromServer.read(buffer)) != -1)
-						messageFromRobotino += new String(buffer).substring(0, charsRead);
+					while((lineRead = inFromServer.readLine()) != null)
+						messageFromRobotino = lineRead;//new String(buffer).substring(0, charsRead);
 
 					mHandler.post(new Runnable() {
 						@Override
 						public void run() {
-							if(messageFromRobotino.equals("Bumper-bumper")){	//Crash-signal
+							if(messageFromRobotino.equals("H")){	//Crash-signal
 								Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 								vib.vibrate(1000);	//Vibrate for 1000ms
 							}
