@@ -61,6 +61,8 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
+		new ConnectToRobotino().execute();
+		
 		mBtnDrive = (Button) findViewById(R.id.btnDrive);
 		mBtnDriveListener = new BtnDriveOnTouchListener();
 		mBtnDrive.setOnTouchListener(mBtnDriveListener);
@@ -98,7 +100,7 @@ public class MainActivity extends Activity {
 	public void onResume() {
 		super.onResume();
 		//new Thread(new SpeakToRobotinoThread()).start();
-		new ConnectToRobotino().execute();
+		
 	}
 
 	@Override
@@ -255,6 +257,7 @@ public class MainActivity extends Activity {
             { 
   				InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
   				mSocket = new Socket(serverAddr, SERVERPORT);
+  				new Thread(new SpeakToRobotinoThread()).start();
             }
             catch(UnknownHostException e1)
             { 
@@ -265,7 +268,7 @@ public class MainActivity extends Activity {
   				e1.printStackTrace(); 
   			}
         	
-        	new Thread(new SpeakToRobotinoThread()).start();
+        	
             return null;
         }
  
