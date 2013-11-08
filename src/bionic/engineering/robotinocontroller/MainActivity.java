@@ -203,7 +203,7 @@ public class MainActivity extends Activity {
 					mHandler.post(new Runnable() {
 						@Override
 						public void run() {
-							if(messageFromRobotino.equals("Hei")){	//Crash-signal
+							if(messageFromRobotino.equals("Bumper-bumper")){	//Crash-signal
 								Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 								vib.vibrate(1000);	//Vibrate for 1000ms
 							}
