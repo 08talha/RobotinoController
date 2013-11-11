@@ -207,7 +207,7 @@ public class MainActivity extends Activity {
             
   			if(message.equals("error")){
             	mIsConnected = false;
-            	mBtnDrive.setBackgroundColor(Color.RED);
+            	mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
             	mBtnDrive.setText("Trykk for å koble til");
             }
         }
@@ -311,12 +311,12 @@ public class MainActivity extends Activity {
 								}
 									Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 									vib.vibrate(1000);	//Vibrate for 1000ms
-									mBtnDrive.setBackgroundColor(Color.RED);
+									mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
 									mBtnDrive.setText("Trykk for å koble til");
 							}
 							else if(messageFromRobotino.equals("connected")){
 				  				mIsConnected = true;
-				  				mBtnDrive.setBackgroundColor(Color.GREEN);
+				  				mBtnDrive.setBackgroundResource(R.drawable.green_button_state);
 				            	mBtnDrive.setText("Kjør");
 							}
 						}
