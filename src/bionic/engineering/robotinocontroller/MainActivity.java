@@ -55,8 +55,6 @@ public class MainActivity extends Activity {
 	
 	//private static final int SERVERPORT = 5444;
 	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
-	//private static final int SERVERPORT = 11000;
-	//private static final String SERVER_IP = "192.168.1.112";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
