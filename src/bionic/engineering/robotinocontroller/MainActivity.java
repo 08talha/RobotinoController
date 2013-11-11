@@ -6,23 +6,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.message.BasicNameValuePair;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -31,15 +22,14 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Vibrator;
-import android.view.Gravity;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	
@@ -57,6 +47,7 @@ public class MainActivity extends Activity {
 	private GyroListener mGyroListener;
 	private float mVelocityX, mVelocityY, mVelocityZ; // Velocities in each direction
 	private boolean mIsConnected;
+	SharedPreferences preferences;
 	
 	//private static final int SERVERPORT = 5444;
 	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
@@ -87,6 +78,9 @@ public class MainActivity extends Activity {
 		mGyroView = new GyroVisualizer(this);
 		LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
 		layout.addView(mGyroView);
+		
+
+		preferences = getSharedPreferences("bionic.engineering.robotinocontroller_preferences", MODE_MULTI_PROCESS);
 	}
 
 	public void onPause() {
@@ -113,12 +107,41 @@ public class MainActivity extends Activity {
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) 
+	{
+		switch(item.getItemId())
+		{
+			case R.id.action_settings : showSettingsPreferenceActivity();
+									 	return true;
+		}
+		
+		return false;
+	}
+	
+	// metoden blir kaldt når man trykker på SMS settings i menyvalget.
+	private void showSettingsPreferenceActivity()
+	{
+		Intent intent = new Intent(this, SettingsPreferenceActivity.class);
+		startActivity(intent);
+	}
 
 	// Updates coordinates on the phone's screen
 	private void updateOrientation(float x, float y, float z) {
 		mGyroView.setGyroRotation(-x, -y, -z);
+		
+		boolean showCoordinates = preferences.getBoolean("showCoordinates", true);
 		TextView output = (TextView) findViewById(R.id.output);
-		output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
+		
+		if (showCoordinates)
+		{
+			output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
+		}
+		else
+		{
+			output.setText("");
+		}
 	}
 
 	// Sends coordinates to server
@@ -268,9 +291,19 @@ public class MainActivity extends Activity {
 			if (timeDiff > 1 || timeDiffZ > 1) {
 				timeDiff = timeDiffZ = MIN_TIME_STEP; // Make sure we don't go bananas after pause/resume
 			}
-			mVelocityX += x * timeDiff;
-			mVelocityY += y * timeDiff;
-			mVelocityZ += angularVelocityZ * timeDiffZ;
+			
+			boolean xEnabled = preferences.getBoolean("isXEnabled", true);
+			boolean yEnabled = preferences.getBoolean("isYEnabled", true);
+			boolean zEnabled = preferences.getBoolean("isZEnabled", true);
+			
+			if (xEnabled) mVelocityX += x * timeDiff;
+			else mVelocityX = 0f;
+				
+			if (yEnabled) mVelocityY += y * timeDiff;
+			else mVelocityY = 0f;
+			
+			if (zEnabled) mVelocityZ += angularVelocityZ * timeDiffZ;
+			else mVelocityZ = 0f;
 
 			// Make a zone around each axis where slow movements doesn't effect Robotino (the velocity is set to 0 in this zone).
 			if (mVelocityX > -0.06f && mVelocityX < 0.06f)

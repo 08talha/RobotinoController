@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    
+    <PreferenceCategory 
+        android:title="@string/settings_title">
+        
+        <CheckBoxPreference
+            android:key="showCoordinates"
+			android:title="@string/checkbox_coordinates_text" 
+			android:defaultValue="true"
+			android:summary="@string/checkbox_coordinates_summary"/>
+        
+        <CheckBoxPreference
+            android:key="isXEnabled"
+			android:title="@string/checkbox_x_text" 
+			android:defaultValue="true"
+			android:summary="@string/checkbox_x_summary"/>
+        
+        <CheckBoxPreference
+            android:key="isYEnabled"
+			android:title="@string/checkbox_y_text" 
+			android:defaultValue="true"
+			android:summary="@string/checkbox_y_summary"/>
+        
+        <CheckBoxPreference
+            android:key="isZEnabled"
+			android:title="@string/checkbox_z_text" 
+			android:defaultValue="true"
+			android:summary="@string/checkbox_z_summary"/>
+          
+    </PreferenceCategory>
+</PreferenceScreen>
