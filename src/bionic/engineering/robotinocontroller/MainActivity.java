@@ -55,6 +55,8 @@ public class MainActivity extends Activity {
 	
 	//private static final int SERVERPORT = 5444;
 	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
+	//private static final int SERVERPORT = 11000;
+	//private static final String SERVER_IP = "192.168.1.112";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -238,9 +240,7 @@ public class MainActivity extends Activity {
 		public boolean onTouch(View btn, MotionEvent event) {
 			switch (event.getAction()) {
 			case MotionEvent.ACTION_DOWN:
-				if (mOfflineMode)
-					mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
-				else if(!mIsConnected)
+				if(!mIsConnected && !mOfflineMode)
 					new ConnectToBrain().execute();
 				else if (mIsDummyDisconnected)
 				{
