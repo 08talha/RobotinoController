@@ -29,7 +29,8 @@
         </activity>
         
         <activity 
-            android:name="bionic.engineering.robotinocontroller.SettingsPreferenceActivity">
+            android:name="bionic.engineering.robotinocontroller.SettingsPreferenceActivity"
+            android:screenOrientation="landscape">
 		</activity>
 		
     </application>

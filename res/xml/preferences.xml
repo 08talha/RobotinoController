@@ -27,6 +27,12 @@
 			android:title="@string/checkbox_z_text" 
 			android:defaultValue="true"
 			android:summary="@string/checkbox_z_summary"/>
+        
+        <CheckBoxPreference
+            android:key="offlineMode"
+			android:title="@string/checkbox_offlineMode_text" 
+			android:defaultValue="true"
+			android:summary="@string/checkbox_offlineMode_summary"/>
           
     </PreferenceCategory>
 </PreferenceScreen>

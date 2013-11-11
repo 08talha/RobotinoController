@@ -14,6 +14,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -47,7 +48,9 @@ public class MainActivity extends Activity {
 	private GyroListener mGyroListener;
 	private float mVelocityX, mVelocityY, mVelocityZ; // Velocities in each direction
 	private boolean mIsConnected;
-	SharedPreferences preferences;
+	private SharedPreferences mPreferences;
+	private PreferenceListener preferenceListener;
+	private boolean mShowCoordinates, mXEnabled, mYEnabled, mZEnabled, mOfflineMode;
 	
 	//private static final int SERVERPORT = 5444;
 	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
@@ -57,7 +60,7 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		new ConnectToBrain().execute();
+		mIsConnected = false;
 		
 		mBtnDrive = (Button) findViewById(R.id.btnDrive);
 		mBtnDriveListener = new BtnDriveOnTouchListener();
@@ -79,8 +82,24 @@ public class MainActivity extends Activity {
 		LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
 		layout.addView(mGyroView);
 		
+		mGyroListener = new GyroListener();
 
-		preferences = getSharedPreferences("bionic.engineering.robotinocontroller_preferences", MODE_MULTI_PROCESS);
+		mPreferences = getSharedPreferences("bionic.engineering.robotinocontroller_preferences", MODE_MULTI_PROCESS);
+		preferenceListener = new PreferenceListener();
+		mPreferences.registerOnSharedPreferenceChangeListener(preferenceListener);
+		
+		mShowCoordinates = mPreferences.getBoolean("showCoordinates", true);
+		mXEnabled = mPreferences.getBoolean("isXEnabled", true);
+		mYEnabled = mPreferences.getBoolean("isYEnabled", true);
+		mZEnabled = mPreferences.getBoolean("isZEnabled", true);
+		mOfflineMode = mPreferences.getBoolean("offlineMode", false);
+		
+		if (mOfflineMode)
+		{
+			mIsConnected = mOfflineMode;
+			mBtnDrive.setBackgroundResource(R.drawable.green_button_state);
+        	mBtnDrive.setText(getString(R.string.btnOffline));
+		}
 	}
 
 	public void onPause() {
@@ -131,16 +150,12 @@ public class MainActivity extends Activity {
 	private void updateOrientation(float x, float y, float z) {
 		mGyroView.setGyroRotation(-x, -y, -z);
 		
-		boolean showCoordinates = preferences.getBoolean("showCoordinates", true);
 		TextView output = (TextView) findViewById(R.id.output);
 		
-		if (showCoordinates)
+		if (mShowCoordinates)
 		{
-			output.setText("x: " + x + "\ny: " + y + "\nz: " + z);
-		}
-		else
-		{
-			output.setText("");
+			// Robotino's x-axis is the phone's y-axis
+			output.setText("x: " + y + "\ny: " + x + "\nz: " + z);
 		}
 	}
 
@@ -220,7 +235,6 @@ public class MainActivity extends Activity {
   				return "error"; 
   			}
         	
-        	mGyroListener = new GyroListener();
             return "ok";
         }
  
@@ -231,7 +245,7 @@ public class MainActivity extends Activity {
   			if(message.equals("error")){
             	mIsConnected = false;
             	mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
-            	mBtnDrive.setText("Trykk for å koble til");
+            	mBtnDrive.setText(getString(R.string.btnConnectText));
             }
         }
     }
@@ -292,17 +306,13 @@ public class MainActivity extends Activity {
 				timeDiff = timeDiffZ = MIN_TIME_STEP; // Make sure we don't go bananas after pause/resume
 			}
 			
-			boolean xEnabled = preferences.getBoolean("isXEnabled", true);
-			boolean yEnabled = preferences.getBoolean("isYEnabled", true);
-			boolean zEnabled = preferences.getBoolean("isZEnabled", true);
-			
-			if (xEnabled) mVelocityX += x * timeDiff;
+			if (mXEnabled) mVelocityX += x * timeDiff;
 			else mVelocityX = 0f;
 				
-			if (yEnabled) mVelocityY += y * timeDiff;
+			if (mYEnabled) mVelocityY += y * timeDiff;
 			else mVelocityY = 0f;
 			
-			if (zEnabled) mVelocityZ += angularVelocityZ * timeDiffZ;
+			if (mZEnabled) mVelocityZ += angularVelocityZ * timeDiffZ;
 			else mVelocityZ = 0f;
 
 			// Make a zone around each axis where slow movements doesn't effect Robotino (the velocity is set to 0 in this zone).
@@ -313,7 +323,9 @@ public class MainActivity extends Activity {
 			if (mVelocityZ > -0.02f && mVelocityZ < 0.02f)
 				mVelocityZ = 0f;
 
-			sendToRobotino(mVelocityY, mVelocityX, mVelocityZ); // Robotino's x-axis is the phone's y-axis
+			if (!mOfflineMode)
+				sendToRobotino(mVelocityY, mVelocityX, mVelocityZ); // Robotino's x-axis is the phone's y-axis
+			
 			updateOrientation(mVelocityY, mVelocityX, mVelocityZ);
 		}
 	}
@@ -345,12 +357,12 @@ public class MainActivity extends Activity {
 									Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 									vib.vibrate(1000);	//Vibrate for 1000ms
 									mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
-									mBtnDrive.setText("Trykk for å koble til");
+									mBtnDrive.setText(getString(R.string.btnConnectText));
 							}
 							else if(messageFromRobotino.equals("connected")){
 				  				mIsConnected = true;
 				  				mBtnDrive.setBackgroundResource(R.drawable.green_button_state);
-				            	mBtnDrive.setText("Kjør");
+				            	mBtnDrive.setText(getString(R.string.btnDriveText));
 							}
 						}
 					});
@@ -365,5 +377,53 @@ public class MainActivity extends Activity {
 				e1.printStackTrace(); 
 			}
 		} 
+	}
+	
+	class PreferenceListener implements OnSharedPreferenceChangeListener
+	{
+		@Override
+		public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) 
+		{
+			if (key.equals("showCoordinates"))
+			{
+				mShowCoordinates = mPreferences.getBoolean("showCoordinates", true);
+				
+				if (!mShowCoordinates)
+				{
+					TextView output = (TextView) findViewById(R.id.output);
+					output.setText("");
+				}
+				
+			}
+			else if (key.equals("isXEnabled"))
+			{
+				mXEnabled = mPreferences.getBoolean("isXEnabled", true);
+			}
+			else if (key.equals("isYEnabled"))
+			{
+				mYEnabled = mPreferences.getBoolean("isYEnabled", true);
+			}
+			else if (key.equals("isZEnabled"))
+			{
+				mZEnabled = mPreferences.getBoolean("isZEnabled", true);
+			}
+			else if (key.equals("offlineMode"))
+			{
+				mOfflineMode = mPreferences.getBoolean("offlineMode", false);
+				
+				if (mOfflineMode)
+				{
+					mIsConnected = mOfflineMode;
+	  				mBtnDrive.setBackgroundResource(R.drawable.green_button_state);
+	            	mBtnDrive.setText(getString(R.string.btnOffline));
+				}
+				else
+				{
+					mIsConnected = mOfflineMode;
+	  				mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
+	            	mBtnDrive.setText(getString(R.string.btnConnectText));
+				}
+			}
+		}
 	}
 }
