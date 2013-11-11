@@ -47,10 +47,11 @@ public class MainActivity extends Activity {
 	private SensorManager mSensorManager;
 	private GyroListener mGyroListener;
 	private float mVelocityX, mVelocityY, mVelocityZ; // Velocities in each direction
-	private boolean mIsConnected;
+	private boolean mIsConnected, mGoToPreferenceActivity, mIsDummyDisconnected;
 	private SharedPreferences mPreferences;
 	private PreferenceListener preferenceListener;
 	private boolean mShowCoordinates, mXEnabled, mYEnabled, mZEnabled, mOfflineMode;
+	private ProgressDialog mProgressDialog;
 	
 	//private static final int SERVERPORT = 5444;
 	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
@@ -59,8 +60,11 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-
+		
+		mGoToPreferenceActivity = false;
 		mIsConnected = false;
+		mIsDummyDisconnected = false;
+		mProgressDialog = null;
 		
 		mBtnDrive = (Button) findViewById(R.id.btnDrive);
 		mBtnDriveListener = new BtnDriveOnTouchListener();
@@ -105,20 +109,23 @@ public class MainActivity extends Activity {
 	public void onPause() {
 		super.onPause();
 		mSensorManager.unregisterListener(mGyroListener);
-		if (mSocket != null) {
+		if (!mGoToPreferenceActivity && mSocket != null) {
 			try {
 				sendToRobotino(999, 999, 999); // Sends 999 to close socket
 				mSocket.close();
+				mIsConnected = false;
+				mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
+				mBtnDrive.setText(getString(R.string.btnConnectText));
 			} catch (IOException e) {
 				// Have to catch this exception
 			}
 		}
-	}
-
-	public void onResume() {
-		super.onResume();
-		//new Thread(new SpeakToRobotinoThread()).start();
+		mGoToPreferenceActivity = false;
 		
+		if (mProgressDialog != null)
+		{
+			mProgressDialog.dismiss();
+		}
 	}
 
 	@Override
@@ -142,6 +149,7 @@ public class MainActivity extends Activity {
 	// metoden blir kaldt når man trykker på SMS settings i menyvalget.
 	private void showSettingsPreferenceActivity()
 	{
+		mGoToPreferenceActivity = true;
 		Intent intent = new Intent(this, SettingsPreferenceActivity.class);
 		startActivity(intent);
 	}
@@ -172,50 +180,20 @@ public class MainActivity extends Activity {
 			e.printStackTrace();
 		}
 	}
-
-	//The thread that reads messages from Robotino
-	/*class ReadFromRobotinoThread implements Runnable {
-		String messageFromRobotino = "";
-
-		@Override
-		public void run() {
-			try {
-				BufferedReader inFromServer = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
-				int charsRead = 0;
-				char[] buffer = new char[2048];
-
-				while ((charsRead = inFromServer.read(buffer)) != -1)
-					messageFromRobotino += new String(buffer).substring(0, charsRead);
-
-				mHandler.post(new Runnable() {
-					@Override
-					public void run() {
-						mBtnDrive.setText(messageFromRobotino);
-					}
-
-				});
-			}
-			catch (IOException e) {
-				Log.d("test","IOE");
-			}
-		}
-	}*/
-	
 	
 	// Connects to server.
 	class ConnectToBrain extends AsyncTask<String, String, String>
 	{
-		private ProgressDialog pDialog = null;
 		String messageFromRobotino = "";
 		
         @Override
         protected void onPreExecute() 
         {
             super.onPreExecute();
-            pDialog = new ProgressDialog(MainActivity.this);
-            pDialog.setMessage("Kobler til server...");
-            pDialog.setCancelable(false);
-            pDialog.show();
+            mProgressDialog = new ProgressDialog(MainActivity.this);
+            mProgressDialog.setMessage("Kobler til server...");
+            mProgressDialog.setCancelable(false);
+            mProgressDialog.show();
         }
  
         protected String doInBackground(String... args) 
@@ -240,8 +218,8 @@ public class MainActivity extends Activity {
  
         protected void onPostExecute(String message) 
         {
-            pDialog.dismiss();
-            
+        	mProgressDialog.dismiss();
+        	mProgressDialog = null;
   			if(message.equals("error")){
             	mIsConnected = false;
             	mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
@@ -260,8 +238,16 @@ public class MainActivity extends Activity {
 		public boolean onTouch(View btn, MotionEvent event) {
 			switch (event.getAction()) {
 			case MotionEvent.ACTION_DOWN:
-				if(!mIsConnected)
+				if (mOfflineMode)
+					mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
+				else if(!mIsConnected)
 					new ConnectToBrain().execute();
+				else if (mIsDummyDisconnected)
+				{
+					mIsDummyDisconnected = false;
+	  				mBtnDrive.setBackgroundResource(R.drawable.green_button_state);
+	            	mBtnDrive.setText(getString(R.string.btnDriveText));
+				}
 				else
 					mSensorManager.registerListener(mGyroListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_UI);
 				break;
@@ -341,12 +327,12 @@ public class MainActivity extends Activity {
 					String lineRead = "";
 			
 					lineRead = inFromServer.readLine();
-						messageFromRobotino = lineRead;
+					messageFromRobotino = lineRead;
 			
 					mHandler.post(new Runnable() {
 						@Override
 						public void run() {
-							if(messageFromRobotino == null || messageFromRobotino.equals("H")){	//Crash-signal
+							if(messageFromRobotino == null){	//Crash-signal
 								try{
 									mSocket.close();
 									mIsConnected = false;
@@ -354,10 +340,19 @@ public class MainActivity extends Activity {
 								catch(IOException io){
 									io.printStackTrace();
 								}
-									Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-									vib.vibrate(1000);	//Vibrate for 1000ms
-									mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
-									mBtnDrive.setText(getString(R.string.btnConnectText));
+								
+								Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+								vib.vibrate(1000);	//Vibrate for 1000ms
+								mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
+								mBtnDrive.setText(getString(R.string.btnConnectText));
+							}
+							else if(messageFromRobotino.equals("H")){
+								Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+								vib.vibrate(1000);	//Vibrate for 1000ms
+								mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
+								mBtnDrive.setText(getString(R.string.btnConnectText));
+								mIsDummyDisconnected = true;
+								mSensorManager.unregisterListener(mGyroListener);
 							}
 							else if(messageFromRobotino.equals("connected")){
 				  				mIsConnected = true;
@@ -416,6 +411,16 @@ public class MainActivity extends Activity {
 					mIsConnected = mOfflineMode;
 	  				mBtnDrive.setBackgroundResource(R.drawable.green_button_state);
 	            	mBtnDrive.setText(getString(R.string.btnOffline));
+	            	
+	            	if (mSocket != null) {
+	        			try {
+	        				sendToRobotino(999, 999, 999); // Sends 999 to close socket
+	        				mSocket.close();
+	        				mIsConnected = false;
+	        			} catch (IOException e) {
+	        				// Have to catch this exception
+	        			}
+	        		}
 				}
 				else
 				{

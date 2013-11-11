@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
-import android.util.AttributeSet;
 import android.view.View;
 
 public class GyroVisualizer extends View {
@@ -29,31 +28,13 @@ public class GyroVisualizer extends View {
         mGyroPaintY.setAntiAlias(true);
     }
 
-    /*public GyroVisualizer(Context context, AttributeSet attrs) {
-        this(context, attrs, 0);
-    }
-
-    public GyroVisualizer(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
-
-        mGyroPaint.setColor(0x77000000);
-        mGyroPaint.setStyle(Style.STROKE);
-        mGyroPaint.setStrokeWidth(10);
-        mGyroPaint.setAntiAlias(true);
-        
-        mGyroPaintY.setColor(0x7700FF00);
-        mGyroPaintY.setStyle(Style.STROKE);
-        mGyroPaintY.setStrokeWidth(10);
-        mGyroPaintY.setAntiAlias(true);
-    }*/
-
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
         float midX = getWidth() / 2f;		//Finds center of phonescreen
         float midY = getHeight() / 2f;
-        mRadius = midY - 5f;	// Heigth of the circle
+        mRadius = midY - 5f;	// Height of the circle
 
         // Gyroscope
         canvas.save();
