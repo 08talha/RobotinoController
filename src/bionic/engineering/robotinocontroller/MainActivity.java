@@ -7,7 +7,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -23,6 +25,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Vibrator;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -31,6 +34,7 @@ import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	
@@ -52,6 +56,7 @@ public class MainActivity extends Activity {
 	private PreferenceListener preferenceListener;
 	private boolean mShowCoordinates, mXEnabled, mYEnabled, mZEnabled, mOfflineMode;
 	private ProgressDialog mProgressDialog;
+	private TextView mOutput;
 	
 	//private static final int SERVERPORT = 5444;
 	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
@@ -104,6 +109,15 @@ public class MainActivity extends Activity {
 			mBtnDrive.setBackgroundResource(R.drawable.green_button_state);
         	mBtnDrive.setText(getString(R.string.btnOffline));
 		}
+		
+		mOutput = (TextView) findViewById(R.id.output);
+		
+		if (!mShowCoordinates)
+		{
+			mOutput.setText("");
+		}
+		else
+			mOutput.setText("x: 0.0\ny: 0.0\nz: 0.0");
 	}
 
 	public void onPause() {
@@ -157,13 +171,10 @@ public class MainActivity extends Activity {
 	// Updates coordinates on the phone's screen
 	private void updateOrientation(float x, float y, float z) {
 		mGyroView.setGyroRotation(-x, -y, -z);
-		
-		TextView output = (TextView) findViewById(R.id.output);
-		
 		if (mShowCoordinates)
 		{
 			// Robotino's x-axis is the phone's y-axis
-			output.setText("x: " + y + "\ny: " + x + "\nz: " + z);
+			mOutput.setText("x: " + y + "\ny: " + x + "\nz: " + z);
 		}
 	}
 
@@ -200,17 +211,23 @@ public class MainActivity extends Activity {
         {
         	try
             { 
-  				InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
-  				mSocket = new Socket(serverAddr, SERVERPORT);
+  				//InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
+  				//mSocket = new Socket(serverAddr, SERVERPORT);
+  				
+  				SocketAddress serverAddr = new InetSocketAddress(SERVER_IP, SERVERPORT);
+  				mSocket = new Socket();
+  				// Try connect with 6 s timeout
+  				mSocket.connect(serverAddr, 6000);
+  			
   				new Thread(new SpeakToRobotinoThread()).start();
             }
             catch(UnknownHostException e1)
             { 
-  				return "error";
+  				return e1.toString();
   			} 
   			catch(IOException e1)
   			{ 
-  				return "error"; 
+  				return e1.toString(); 
   			}
         	
             return "ok";
@@ -220,10 +237,15 @@ public class MainActivity extends Activity {
         {
         	mProgressDialog.dismiss();
         	mProgressDialog = null;
-  			if(message.equals("error")){
+        	
+  			if(!message.equals("ok")){
             	mIsConnected = false;
             	mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
             	mBtnDrive.setText(getString(R.string.btnConnectText));
+            	
+            	Toast toast = Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG);
+            	toast.setGravity(Gravity.CENTER, 0, 0);
+            	toast.show();
             }
         }
     }
@@ -383,9 +405,10 @@ public class MainActivity extends Activity {
 				
 				if (!mShowCoordinates)
 				{
-					TextView output = (TextView) findViewById(R.id.output);
-					output.setText("");
+					mOutput.setText("");
 				}
+				else
+					mOutput.setText("x: 0.0\ny: 0.0\nz: 0.0");
 				
 			}
 			else if (key.equals("isXEnabled"))

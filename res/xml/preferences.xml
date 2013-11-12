@@ -31,7 +31,7 @@
         <CheckBoxPreference
             android:key="offlineMode"
 			android:title="@string/checkbox_offlineMode_text" 
-			android:defaultValue="true"
+			android:defaultValue="false"
 			android:summary="@string/checkbox_offlineMode_summary"/>
           
     </PreferenceCategory>
