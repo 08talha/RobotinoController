@@ -2,7 +2,18 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
     
     <PreferenceCategory 
-        android:title="@string/settings_title">
+        android:title="Nettverk">
+        
+        <CheckBoxPreference
+            android:key="offlineMode"
+			android:title="@string/checkbox_offlineMode_text" 
+			android:defaultValue="false"
+			android:summary="@string/checkbox_offlineMode_summary"/>
+          
+    </PreferenceCategory>
+    
+    <PreferenceCategory 
+        android:title="Koordinater">
         
         <CheckBoxPreference
             android:key="showCoordinates"
@@ -28,11 +39,5 @@
 			android:defaultValue="true"
 			android:summary="@string/checkbox_z_summary"/>
         
-        <CheckBoxPreference
-            android:key="offlineMode"
-			android:title="@string/checkbox_offlineMode_text" 
-			android:defaultValue="false"
-			android:summary="@string/checkbox_offlineMode_summary"/>
-          
-    </PreferenceCategory>
+        </PreferenceCategory>
 </PreferenceScreen>
