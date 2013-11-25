@@ -379,7 +379,7 @@ public class MainActivity extends Activity {
 								mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
 								mBtnDrive.setText(getString(R.string.btnConnectText));
 							}
-							else if(messageFromRobotino.equals("H")){
+							else if(messageFromRobotino.equals("bumper")){
 								Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 								vib.vibrate(1000);	//Vibrate for 1000ms
 								mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
