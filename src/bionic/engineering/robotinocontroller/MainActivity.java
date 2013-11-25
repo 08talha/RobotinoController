@@ -6,14 +6,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -57,9 +59,6 @@ public class MainActivity extends Activity {
 	private boolean mShowCoordinates, mXEnabled, mYEnabled, mZEnabled, mOfflineMode;
 	private ProgressDialog mProgressDialog;
 	private TextView mOutput;
-	
-	//private static final int SERVERPORT = 5444;
-	//private static final String SERVER_IP = "10.10.1.71"; // Server receiving signals from phone
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -81,10 +80,7 @@ public class MainActivity extends Activity {
 
 		// Test to see if cellphone has Gyroscope.
 		if (mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) == null) {
-			/**
-			 * Mobil har ikke gyroscope!! Lag feilmelding og avslutt app!
-			 * 
-			 */
+			showFinishDialog();
 		}
 
 		mGyroView = new GyroVisualizer(this);
@@ -113,13 +109,12 @@ public class MainActivity extends Activity {
 		mOutput = (TextView) findViewById(R.id.output);
 		
 		if (!mShowCoordinates)
-		{
 			mOutput.setText("");
-		}
 		else
 			mOutput.setText("x: 0.0\ny: 0.0\nz: 0.0");
 	}
 
+	@Override
 	public void onPause() {
 		super.onPause();
 		mSensorManager.unregisterListener(mGyroListener);
@@ -160,7 +155,25 @@ public class MainActivity extends Activity {
 		return false;
 	}
 	
-	// metoden blir kaldt når man trykker på SMS settings i menyvalget.
+	// If the device does not have Gyroscope. this is called and when the user clicks ok the app closes.
+	private void showFinishDialog()
+	{
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle(R.string.finish_dialog_title);
+		builder.setMessage(R.string.finish_dialog_message);
+		builder.setPositiveButton(getString(R.string.ok_button), new OnClickListener()
+		{
+			@Override
+			public void onClick(DialogInterface arg0, int arg1) {
+				finish();
+			}
+		});
+		
+		builder.setCancelable(false);
+		builder.create().show();
+	}
+	
+	// The method is called when you click on settings
 	private void showSettingsPreferenceActivity()
 	{
 		mGoToPreferenceActivity = true;
@@ -202,18 +215,16 @@ public class MainActivity extends Activity {
         {
             super.onPreExecute();
             mProgressDialog = new ProgressDialog(MainActivity.this);
-            mProgressDialog.setMessage("Kobler til server...");
+            mProgressDialog.setMessage(getString(R.string.connect_to_server_message));
             mProgressDialog.setCancelable(false);
             mProgressDialog.show();
         }
  
+        @Override
         protected String doInBackground(String... args) 
         {
         	try
             { 
-  				//InetAddress serverAddr = InetAddress.getByName(SERVER_IP); 
-  				//mSocket = new Socket(serverAddr, SERVERPORT);
-  				
   				SocketAddress serverAddr = new InetSocketAddress(SERVER_IP, SERVERPORT);
   				mSocket = new Socket();
   				// Try connect with 6 s timeout
@@ -233,6 +244,7 @@ public class MainActivity extends Activity {
             return "ok";
         }
  
+        @Override
         protected void onPostExecute(String message) 
         {
         	mProgressDialog.dismiss();
@@ -251,9 +263,10 @@ public class MainActivity extends Activity {
     }
 
 	
-	// Listening for changes on btnDrive; our "gas pedal"
-	// We register the SensorListener when pushing down on the drive-button, and unregister it when releasing button.
-	// We also set all the axis to 0 so we don't continue driving on a new "push-down".
+	/* Listening for changes on btnDrive; our "gas pedal"
+	 * We register the SensorListener when pushing down on the drive-button, and unregister it when releasing button.
+	 * We also set all the axis to 0 so we don't continue driving on a new "push-down".
+	 */
 	class BtnDriveOnTouchListener implements OnTouchListener {
 
 		@Override
@@ -373,11 +386,17 @@ public class MainActivity extends Activity {
 								mBtnDrive.setText(getString(R.string.btnConnectText));
 								mIsDummyDisconnected = true;
 								mSensorManager.unregisterListener(mGyroListener);
+								Toast toast = Toast.makeText(MainActivity.this, getString(R.string.crash_message), Toast.LENGTH_LONG);
+				            	toast.setGravity(Gravity.CENTER, 0, 0);
+				            	toast.show();
 							}
 							else if(messageFromRobotino.equals("connected")){
 				  				mIsConnected = true;
 				  				mBtnDrive.setBackgroundResource(R.drawable.green_button_state);
 				            	mBtnDrive.setText(getString(R.string.btnDriveText));
+				            	Toast toast = Toast.makeText(MainActivity.this, getString(R.string.connected_message), Toast.LENGTH_LONG);
+				            	toast.setGravity(Gravity.CENTER, 0, 0);
+				            	toast.show();
 							}
 						}
 					});
