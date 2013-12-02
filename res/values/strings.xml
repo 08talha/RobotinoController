@@ -17,7 +17,7 @@
 	<string name="checkbox_z_summary">Du kan deaktivere z verdien</string>
 	<string name="checkbox_offlineMode_text">Offline modus</string>
 	<string name="checkbox_offlineMode_summary">Du kan bruke appen i offline modus</string>
-	<string name="crash_message">Robotino har kræsjet!</string>
+	<string name="crash_message">Robotino har krasjet!</string>
 	<string name="connected_message">Koblet til server!</string>
 	<string name="finish_dialog_title">Enheten har ikke gyroskop!</string>
 	<string name="finish_dialog_message">Appen vil avsluttes når du trykker på OK</string>

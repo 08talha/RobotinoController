@@ -155,7 +155,7 @@ public class MainActivity extends Activity {
 		return false;
 	}
 	
-	// If the device does not have Gyroscope. this is called and when the user clicks ok the app closes.
+	// If the device does not have Gyroscope this is called and when the user clicks ok the app closes.
 	private void showFinishDialog()
 	{
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
