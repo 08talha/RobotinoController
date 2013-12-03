@@ -48,7 +48,7 @@ public class MainActivity extends Activity {
 	private Handler mHandler;
 	private Button mBtnDrive;
 	private BtnDriveOnTouchListener mBtnDriveListener;
-	private GyroVisualizer mGyroView; // Visualizing gyro on phone
+	private GyroscopeVisualizer mGyroView; // Visualizing gyro on phone
 	private Socket mSocket;
 	private SensorManager mSensorManager;
 	private GyroListener mGyroListener;
@@ -83,7 +83,7 @@ public class MainActivity extends Activity {
 			showFinishDialog();
 		}
 
-		mGyroView = new GyroVisualizer(this);
+		mGyroView = new GyroscopeVisualizer(this);
 		LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
 		layout.addView(mGyroView);
 		
@@ -314,8 +314,6 @@ public class MainActivity extends Activity {
 			float y = values[1];
 			float z = values[2];
 
-			float angularVelocityZ = z * 0.96f; // Minor adjustment to avoid drift on Nexus S
-
 			// Calculate time diff
 			long now = System.currentTimeMillis();
 			float timeDiff = (now - mLastTime) / TIMEDIFF_FACTOR; // Adjust sensibility
@@ -331,7 +329,7 @@ public class MainActivity extends Activity {
 			if (mYEnabled) mVelocityY += y * timeDiff;
 			else mVelocityY = 0f;
 			
-			if (mZEnabled) mVelocityZ += angularVelocityZ * timeDiffZ;
+			if (mZEnabled) mVelocityZ += z * timeDiffZ;
 			else mVelocityZ = 0f;
 
 			// Make a zone around each axis where slow movements doesn't effect Robotino (the velocity is set to 0 in this zone).
@@ -365,7 +363,7 @@ public class MainActivity extends Activity {
 					mHandler.post(new Runnable() {
 						@Override
 						public void run() {
-							if(messageFromRobotino == null){	//Crash-signal
+							if(messageFromRobotino == null){ // Serverside-socket has closed
 								try{
 									mSocket.close();
 									mIsConnected = false;
@@ -379,7 +377,7 @@ public class MainActivity extends Activity {
 								mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
 								mBtnDrive.setText(getString(R.string.btnConnectText));
 							}
-							else if(messageFromRobotino.equals("bumper")){
+							else if(messageFromRobotino.equals("bumper")){	//Crash-signal
 								Vibrator vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 								vib.vibrate(1000);	//Vibrate for 1000ms
 								mBtnDrive.setBackgroundResource(R.drawable.red_button_state);
