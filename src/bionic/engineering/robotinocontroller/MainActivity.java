@@ -290,6 +290,7 @@ public class MainActivity extends Activity {
 				mVelocityY = 0;
 				mVelocityZ = 0;
 				updateOrientation(mVelocityX, mVelocityY, mVelocityZ);
+				if (!mOfflineMode) sendToRobotino(mVelocityY, mVelocityX, mVelocityZ);
 				mGyroView.setGyroRotation(mVelocityX, mVelocityY, mVelocityZ);
 				break;
 			}
